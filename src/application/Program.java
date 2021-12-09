@@ -34,6 +34,8 @@ public class Program {
 		sellerDao.insert(newSeller);
 		System.out.println("New Seller id: " + newSeller.getId());
 
+		sellerDao.deleteById(8);
+		System.out.println("Deleted!");
 	}
 
 }
