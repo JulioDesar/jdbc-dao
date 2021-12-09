@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +26,43 @@ public class SellerDAO_JDBC implements SellerDAO {
 
 	@Override
 	public void insert(Seller sl) {
-		// TODO Auto-generated method stub
+		PreparedStatement st = null;
+
+		try {
+
+			st = conn.prepareStatement(
+					"INSERT INTO seller "
+					+ "(Name, Email, BirthDate, BaseSalary, DepartmentId) "
+					+ "VALUES "
+					+ "(?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+
+			st.setString(1, sl.getName());
+			st.setString(2, sl.getEmail());
+			st.setDate(3, new java.sql.Date(sl.getBirthDate().getTime()));
+			st.setDouble(4, sl.getBaseSalary());
+			st.setInt(5, sl.getDepartment().getId());
+			
+			int rowsAffected = st.executeUpdate();
+			if(rowsAffected > 0) {
+				ResultSet rs = st.getGeneratedKeys();
+				if(rs.next()) {
+					int id = rs.getInt(1);  	
+					sl.setId(id);
+				}
+				DB.closeResultSet(rs);
+			} else {
+				throw new DbException("Unexpected error! no rows affected!");
+			}
+
+		} catch (SQLException e) {
+
+			throw new DbException(e.getMessage());
+
+		} finally {
+
+			DB.closeStatement(st);
+
+		}
 
 	}
 
@@ -102,32 +139,30 @@ public class SellerDAO_JDBC implements SellerDAO {
 
 	@Override
 	public List<Seller> findAll() {
-		
+
 		PreparedStatement st = null;
 		ResultSet rs = null;
 
 		try {
 
 			st = conn.prepareStatement(
-					"SELECT seller.*,department.Name as DepName "
-					+ "FROM seller INNER JOIN department "
-					+ "ON seller.DepartmentId = department.Id "
-					+ "ORDER BY Name");
+					"SELECT seller.*,department.Name as DepName " + "FROM seller INNER JOIN department "
+							+ "ON seller.DepartmentId = department.Id " + "ORDER BY Name");
 
 			rs = st.executeQuery();
-			
+
 			List<Seller> list = new ArrayList<>();
 			Map<Integer, Department> map = new HashMap<Integer, Department>();
-			
+
 			while (rs.next()) {
-				
+
 				Department dep = map.get(rs.getInt("DepartmentId"));
-				
-				if(dep == null) {
+
+				if (dep == null) {
 					dep = instantiateDepartment(rs);
 					map.put(rs.getInt("DepartmentId"), dep);
 				}
-				
+
 				Seller sl = instantiateSeller(rs, dep);
 
 				list.add(sl);
@@ -145,7 +180,6 @@ public class SellerDAO_JDBC implements SellerDAO {
 			DB.closeResultSet(rs);
 		}
 	}
-	
 
 	@Override
 	public List<Seller> findByDepartment(Department dp) {
@@ -156,28 +190,25 @@ public class SellerDAO_JDBC implements SellerDAO {
 		try {
 
 			st = conn.prepareStatement(
-					  "SELECT seller.*,department.Name as DepName "
-					+ "FROM seller INNER JOIN department "
-					+ "ON seller.DepartmentId = department.Id "
-					+ "WHERE DepartmentId = ? "
-					+ "ORDER BY Name");
+					"SELECT seller.*,department.Name as DepName " + "FROM seller INNER JOIN department "
+							+ "ON seller.DepartmentId = department.Id " + "WHERE DepartmentId = ? " + "ORDER BY Name");
 
 			st.setInt(1, dp.getId());
 
 			rs = st.executeQuery();
-			
+
 			List<Seller> list = new ArrayList<>();
 			Map<Integer, Department> map = new HashMap<Integer, Department>();
-			
+
 			while (rs.next()) {
-				
+
 				Department dep = map.get(rs.getInt("DepartmentId"));
-				
-				if(dep == null) {
+
+				if (dep == null) {
 					dep = instantiateDepartment(rs);
 					map.put(rs.getInt("DepartmentId"), dep);
 				}
-				
+
 				Seller sl = instantiateSeller(rs, dep);
 
 				list.add(sl);
